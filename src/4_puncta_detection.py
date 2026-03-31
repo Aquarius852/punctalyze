@@ -104,26 +104,31 @@ def generate_cytoplasm_masks(masks):
             single_cyto.append(np.zeros_like(cell_mask, dtype=int))
 
         cyto_masks[name] = sum(single_cyto)
-    logger.info('cytoplasm masks created.')
+    logger.info('cytoplasm masks created')
     return cyto_masks
 
 
-def filter_saturated_images(images, cytoplasm_masks, masks):
+def filter_saturated_images(images, masks):
     logger.info('filtering saturated cells...')
     filtered = {}
     for name, img in images.items():
-        # Build a stack: [stain, coi, cytoplasm mask]
-        stack = np.stack([
-            img[COI_2], img[COI_1], cytoplasm_masks[name]
-        ])
+        # wrangle masks to match the expected input for the saturation check function
+        if len(masks[name].shape) == 2:  # if only one mask layer, add a dummy one
+            masks_arr = masks[name]
+            masks_arr = np.expand_dims(masks_arr, axis=0) 
+        else:
+            masks_arr = masks[name]             
+
         # apply imported saturation check function
         cells = remove_saturated_cells(
-            image_stack=stack,
-            mask_stack=masks[name],
+            image_stack=img,
+            mask_stack=masks_arr,
             COI=COI_1
         )
+
+        # build stack for downstream processing as [coi2, coi1, cell_masks]
         filtered[name] = np.stack([img[COI_2], img[COI_1], cells])
-    logger.info('saturated cells filtered.')
+    logger.info('saturated cells filtered')
     return filtered
 
 
@@ -174,6 +179,13 @@ def collect_features(image_dict, STD_THRESHOLD=STD_THRESHOLD):
                 df_stats = pd.DataFrame(stats_list, columns=stats_columns)
             
             df = pd.concat([df_p.reset_index(drop=True), df_stats], axis=1)
+
+            # remove puncta pixels to get only the surrounding cell intensity (dilute) for the partition coefficient calculation
+            surrounding_mask = cell_mask & ~binary
+            df['cell_coi1_dilute_intensity_mean'] = (coi1[surrounding_mask]).mean()
+            df['cell_coi2_dilute_intensity_mean'] = (coi2[surrounding_mask]).mean()
+
+            # add other per-cell features
             df['image_name'], df['cell_number'] = name, lbl
             df['cell_size'] = cell_mask.sum()
             df['cell_std'] = std_coi1
@@ -185,7 +197,7 @@ def collect_features(image_dict, STD_THRESHOLD=STD_THRESHOLD):
 
             results.append(df)
 
-    logger.info('feature extraction done.')
+    logger.info('feature extraction done')
     return pd.concat(results, ignore_index=True)
 
 
@@ -193,8 +205,8 @@ def extra_puncta_features(df):
     df = df.copy()  # avoid modifying in place
     df['puncta_aspect_ratio'] = df['puncta_minor_axis_length'] / df['puncta_major_axis_length']
     df['puncta_circularity'] = 12.566 * df['puncta_area'] / (df['puncta_perimeter'] ** 2)
-    df['coi2_partition_coeff'] = df['puncta_intensity_mean_in_coi2'] / df['cell_coi2_intensity_mean']
-    df['coi1_partition_coeff'] = df['puncta_intensity_mean'] / df['cell_coi1_intensity_mean']
+    df['coi1_partition_coeff'] = df['puncta_intensity_mean'] / df['cell_coi1_dilute_intensity_mean']
+    df['coi2_partition_coeff'] = df['puncta_intensity_mean_in_coi2'] / df['cell_coi2_dilute_intensity_mean']
 
     return df
 
@@ -296,9 +308,6 @@ if __name__ == '__main__':
             'puncta_circularity', 'puncta_cv', 'puncta_skew',
             'coi2_partition_coeff', 'coi1_partition_coeff', 'cell_std',
             'cell_cv', 'cell_skew']
-    
-    # # remove outliers based on z-score
-    # features = features[(np.abs(stats.zscore(features[cols[:-1]])) < 3).all(axis=1)]
 
     # --- data trimming and saving ---
     # trim off coordinates used for proofs, save the main features dataframe
