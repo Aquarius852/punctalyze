@@ -134,17 +134,48 @@ if __name__ == '__main__':
     # Cellpose-SAM will use the first 3 channels of your image, truncating the rest. It has been trained with the cytoplasm and nuclear channels in any order, with the other channel set to zero.
     # you can combine two stains to create your "cytoplasm" channel
     # in this example indices 0 and 1 (1st and 2nd) have two cellular stains, and nuclei are in index 2 (3rd channel)
-    imgs_cp = [np.stack((img[[0,1]].sum(axis=0), img[2]), axis=0) for name, img in images_dict.items()]
+    # subtract one image from another to reduce background and improve segmentation
+    imgs_cp = {
+        name: np.stack((img[[2]].sum(axis=0), np.maximum(img[-1].astype(np.int32) - img[0].astype(np.int32), 0).astype(np.uint16)), axis=0)
+        for name, img in images_dict.items()
+    }
 
     # other packages to preprocess images and improve segmentation if needed
     # gaussian_blur = [filters.gaussian(image, sigma=1, multichannel=True) for image in imgs_cp]
     # brightened = [np.clip(channel*5, 0, 65535).astype(np.uint16) for channel in imgs_cp] # assumes 16-bit images
 
-    # ---------------- apply cellpose ----------------
-    masks, flows, styles = apply_cellpose(imgs_cp, niter=2000, big_images=True)
-    # check the masks with visualisation, else you can skip this step
-    visualise_cellpose(imgs_cp, masks, flows, big_images=True)
+    # ---------------- check existing masks ----------------
+    existing_masks = {
+        fname.replace('_sammask.npy', '')
+        for fname in os.listdir(output_folder)
+        if fname.endswith('_sammask.npy')
+    }
 
-    # ---------------- save masks ----------------
-    np.save(f'{output_folder}cellpose_cellmasks.npy', masks)
-    logger.info('cell masks saved')
+    logger.info(f'{len(existing_masks)} masks already exist, will skip these')
+
+    # ---------------- apply cellpose ----------------
+    model = models.CellposeModel(model_type='sam', gpu=True)
+
+    for name, img in imgs_cp.items():
+        name
+        if name in existing_masks:
+            logger.info(f'skipping {name}, mask already exists.')
+            continue
+
+        logger.info(f'processing {name}...')
+
+        masks, flows, styles = apply_cellpose(
+            [img],
+            niter=2000,
+            big_images=True,
+            cellprob_threshold=-2.0,
+            flow_threshold=0.8
+        )
+
+        # check the masks with visualisation, else you can skip this step
+        visualise_cellpose([[images_dict[name][[0,1]].sum(axis=0)]], masks, flows, big_images=True)
+
+        # ---------------- save masks ----------------
+        out_path = os.path.join(output_folder, f'{name}_sammask.npy')
+        np.save(out_path, masks[0])
+        logger.info('cell masks saved')
