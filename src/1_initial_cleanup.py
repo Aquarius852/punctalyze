@@ -16,30 +16,53 @@ import bioio_nd2
 logger.info('import ok')
 
 # configuration
-input_path = 'M:/Olivia/2026-02-28'
+input_path = 'M:/Olivia'
 output_folder = 'results/initial_cleanup/'
 image_extensions = ['.czi', '.tif', '.tiff', '.lif', '.nd2']
 
 
 def squarify(image_stack):
-    new_channels = []
-    for idx, image in enumerate(image_stack):
-        # make sure images are square
-        rows, cols = image.shape
-        max_dim = max(rows, cols)
-        # calculate padding needed for each side
-        pad_r = max_dim - rows
-        pad_c = max_dim - cols
-        # pad at the end (bottom/right)
-        padded_image = np.pad(image, ((0, pad_r), (0, pad_c)), 
-                                mode='constant', constant_values=0)
-        new_channels.append(padded_image)
-    image_stack = np.array(new_channels)
-    return image_stack
+    """
+    Pads Y/X to square.
+    Supports:
+    (C, Y, X) or (C, Z, Y, X)
+    """
+    if image_stack.ndim not in (3, 4):
+        raise ValueError(f"Unsupported shape: {image_stack.shape}")
 
+    # Always operate on last two dims (Y, X)
+    y, x = image_stack.shape[-2:]
+    max_dim = max(y, x)
+
+    pad_y = max_dim - y
+    pad_x = max_dim - x
+
+    pad_width = [(0, 0)] * image_stack.ndim
+    pad_width[-2] = (0, pad_y)
+    pad_width[-1] = (0, pad_x)
+
+    return np.pad(
+        image_stack,
+        pad_width,
+        mode='constant',
+        constant_values=0
+    )
+
+
+def max_project(image):
+    """
+    Applies max projection if Z exists. Helper for scene_finder and scene_splitter functions.
+    Assumes (C, Z, Y, X) or (Z, Y, X)
+    """
+    if image.ndim == 4:
+        return np.max(image, axis=1)  # (C, Z, Y, X) → (C, Y, X)
+    elif image.ndim == 3:
+        return np.max(image, axis=0)  # (Z, Y, X) → (Y, X)
+    else:
+        return image
 
 # function for multi-scene data
-def scene_splitter(image_path, names_mapped):
+def scene_splitter(image_path, names_mapped, MIP=False):
     """Split scenes in multi scene acquisitions
     """
 
@@ -53,69 +76,124 @@ def scene_splitter(image_path, names_mapped):
         restack = np.stack(bio_image.data[0,:,0,:,:])
         # make scene x and y dimensions the same (sometimes off by one pixel)
         restack = squarify(restack)
-        # find matching name
+        if MIP:
+            restack = max_project(restack)
+        np.save(f'{output_folder}{name}.npy', restack)        # find matching name
         name = names_mapped[id]
         # save image as numpy array
         np.save(f'{output_folder}{name}.npy', restack)
 
 
-# function for multi-scene data
-def scene_finder(image_path, names_mapped):
-    """Find scenes in multi scene acquisitions
+def normalize_dims(data, dims):
     """
+    Normalize to (C, Z, M, Y, X)
+    Works with CziFile dims format: [('C', size), ...]
+    """
+
+    # Extract just dimension names
+    dim_names = [d[0] for d in dims]
+
+    # Build map
+    dim_map = {dim: i for i, dim in enumerate(dim_names)}
+
+    # Full axis order (keep everything, just reorder)
+    full_order = list(range(len(dim_names)))
+
+    # Move target dims to the front in correct order
+    target = ['C', 'Z', 'M', 'Y', 'X']
+    front_axes = [dim_map[d] for d in target if d in dim_map]
+
+    # Keep remaining dims (H, S, T, etc.)
+    remaining_axes = [i for i in full_order if i not in front_axes]
+
+    new_order = front_axes + remaining_axes
+
+    # Move desired dims to front
+    data = np.transpose(data, axes=new_order)
+
+    # Collapse all extra dims (H, S, T, etc.)
+    data = data.reshape(
+        data.shape[0],  # C
+        data.shape[1],  # Z
+        data.shape[2],  # M
+        data.shape[3],  # Y
+        data.shape[4],  # X
+    )
+
+    # Remove trailing singleton dims
+    data = np.squeeze(data, axis=tuple(range(5, data.ndim)))
+
+    return data
+
+
+# function for multi-scene data
+def scene_finder(image_path, names_mapped, experiment_prefix=True, MIP=False):
+    """Find and stitch scenes in multi-scene acquisitions (dimension-safe)"""
 
     czi = CziFile(image_path)
     data, dims = czi.read_image(return_dims=True)
 
-    # squeeze unused dims
-    data = np.squeeze(data)  # shape → (4, 16, 2048, 2048)
+    # Normalize to (C, Z, M, Y, X)
+    data = normalize_dims(data, dims)
 
-    # stitching
+    # Unpack dimensions explicitly
+    n_channels, n_z, n_tiles, tile_h, tile_w = data.shape
+
+    # Get tile bounding boxes
     bboxes = czi.get_all_mosaic_tile_bounding_boxes()
 
-    # Keep only tiles that exist in pixel data
+    # Filter valid tiles
     tile_positions = []
     for tile_info, rect in bboxes.items():
-        if tile_info.m_index < data.shape[1]:   # ensure valid tile index
+        if tile_info.m_index < n_tiles:
             tile_positions.append((tile_info.m_index, rect))
 
-    # Sort by M index
+    # Sort tiles
     tile_positions.sort(key=lambda x: x[0])
-    xs = []
-    ys = []
-    for m_index, rect in tile_positions:
-        xs.append(rect.x)
-        ys.append(rect.y)
+
+    # Normalize coordinates
+    xs = [rect.x for _, rect in tile_positions]
+    ys = [rect.y for _, rect in tile_positions]
+
     min_x, min_y = min(xs), min(ys)
     xs = [x - min_x for x in xs]
     ys = [y - min_y for y in ys]
-    tile_h, tile_w = data.shape[2], data.shape[3]
-    n_channels = data.shape[0]
+
+    # Canvas size
     canvas_w = max(xs) + tile_w
     canvas_h = max(ys) + tile_h
-    stitched = np.zeros((n_channels, canvas_h, canvas_w), dtype=data.dtype)
 
+    # Initialize stitched array (C, Z, Y, X)
+    stitched = np.zeros((n_channels, n_z, canvas_h, canvas_w), dtype=data.dtype)
+
+    # Stitch tiles
     for (m_index, rect), x, y in zip(tile_positions, xs, ys):
-        stitched[:, y:y+tile_h, x:x+tile_w] = data[:, m_index, :, :]
+        stitched[:, :, y:y+tile_h, x:x+tile_w] = data[:, :, m_index, :, :]
 
-    # make scene x and y dimensions the same (sometimes off by one pixel)
+    # Squarify
     stitched = squarify(stitched)
 
-    # find matching name
+    # Optional MIP
+    if MIP:
+        stitched = max_project(stitched)
+
+    # Map scene name
     bio_image = BioImage(image_path)
     well_name = bio_image.current_scene
     well_id = names_mapped[well_name]
 
-    # if well_id is in 'do_not_quantitate' list, skip saving
+    if experiment_prefix:
+        prefix = image_path.split('\\')[-1].split('/')[0]  # e.g., '2026-03-31'
+        well_id = f'{prefix}_{well_id}'
+
     if any(word in well_id for word in do_not_quantitate):
         logger.info(f'Skipping {well_id} due to do_not_quantitate criteria')
         return
 
-    # save image as numpy array
     np.save(f'{output_folder}{well_id}.npy', stitched)
 
 
-def image_converter(image_path, output_folder, tiff=False, MIP=False, array=True, split_scenes=False, find_scenes=False, name_dict=None):
+def image_converter(image_path, output_folder, tiff=False, MIP=False, array=True, split_scenes=False, find_scenes=False, name_dict=None, experiment_prefix=False):
     """Stack images from nested .czi files and save for subsequent processing
 
     Args:
@@ -127,6 +205,7 @@ def image_converter(image_path, output_folder, tiff=False, MIP=False, array=True
         split_scenes (bool, optional): Split scenes. Defaults to False.
         find_scenes (bool, optional): Find scenes. Defaults to False.
         names_mapped (dict, optional): Dictionary mapping scene names to desired output names. Required if split_scenes or find_scenes is True. Defaults to None.
+        experiment_prefix (bool, optional): Whether to include experiment prefix in output name. Defaults to False.
     """
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -141,11 +220,11 @@ def image_converter(image_path, output_folder, tiff=False, MIP=False, array=True
         return
     
     if split_scenes == True:
-        scene_splitter(image_path, name_dict)
+        scene_splitter(image_path, name_dict, experiment_prefix=experiment_prefix, MIP=MIP)
         return
     
     if find_scenes == True:
-        scene_finder(image_path, name_dict)
+        scene_finder(image_path, name_dict, experiment_prefix=experiment_prefix, MIP=MIP)
         return
 
     # get a bioimage object
@@ -169,7 +248,7 @@ def image_converter(image_path, output_folder, tiff=False, MIP=False, array=True
         image = bio_image.get_image_data("CYX", B=0, Z=0, V=0, T=0)
 
     # make more human readable name
-    short_name = os.path.basename(image_path)
+    short_name = image_path.split('\\')[1].replace('/', '_') # keep experiment name
     short_name = short_name.split('.')[0]  # remove file extension
 
     if tiff == True:
@@ -182,7 +261,7 @@ def image_converter(image_path, output_folder, tiff=False, MIP=False, array=True
 
     if MIP == True:
         # save image as maximum intensity projection (MIP) numpy array 
-        mip_image = np.max(image, axis=-3) # assuming axis for projection is third from last
+        mip_image = max_project(image)
         np.save(f'{output_folder}{short_name}_mip.npy', mip_image)
 
 
@@ -198,30 +277,6 @@ if __name__ == '__main__':
         'B7-B7': 'jetprime_ISTL1-co-mCherry_LIP5',
         'B8-B8': 'jetprime_mCherry_LIP5',
         'B9-B9': 'jetprime_noDNA',
-        'C2-C2': 'jetprime_eGFP-co-mCherry_LIP5',
-        'C3-C3': 'jetprime_FREE1-co-mCherry_LIP5',
-        'C4-C4': 'jetprime_FLOE2-co-mCherry_LIP5',
-        'C5-C5': 'jetprime_FLOE3-co-mCherry_LIP5',
-        'C6-C6': 'jetprime_SKD1-co-mCherry_LIP5',
-        'C7-C7': 'jetprime_ISTL1-co-mCherry_LIP5',
-        'C8-C8': 'jetprime_mCherry_LIP5',
-        'C9-C9': 'jetprime_noDNA',
-        'E2-E2': 'lipo_eGFP-co-mCherry_LIP5',
-        'E3-E3': 'lipo_FREE1-co-mCherry_LIP5',
-        'E4-E4': 'lipo_FLOE2-co-mCherry_LIP5',
-        'E5-E5': 'lipo_FLOE3-co-mCherry_LIP5',
-        'E6-E6': 'lipo_SKD1-co-mCherry_LIP5',
-        'E7-E7': 'lipo_ISTL1-co-mCherry_LIP5',
-        'E8-E8': 'lipo_mCherry_LIP5',
-        'E9-E9': 'lipo_noDNA',
-        'F2-F2': 'lipo_eGFP-co-mCherry_LIP5',
-        'F3-F3': 'lipo_FREE1-co-mCherry_LIP5',
-        'F4-F4': 'lipo_FLOE2-co-mCherry_LIP5',
-        'F5-F5': 'lipo_FLOE3-co-mCherry_LIP5',
-        'F6-F6': 'lipo_SKD1-co-mCherry_LIP5',
-        'F7-F7': 'lipo_ISTL1-co-mCherry_LIP5',
-        'F8-F8': 'lipo_mCherry_LIP5',
-        'F9-F9': 'lipo_noDNA'
     }
 
     # --------------- initalize file_list ---------------
@@ -254,6 +309,6 @@ if __name__ == '__main__':
     # --------------- collect image names and convert ---------------
     # collect and convert images to np arrays
     for name in image_names:
-        image_converter(name, output_folder=f'{output_folder}', find_scenes=True, name_dict=name_dict)
+        image_converter(name, output_folder=f'{output_folder}', find_scenes=True, name_dict=name_dict, MIP=True, experiment_prefix=True)
 
     logger.info('initial cleanup complete :-)')
