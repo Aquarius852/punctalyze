@@ -13,11 +13,10 @@ from qtpy.QtWidgets import QApplication
 logger.info('import ok')
 
 # configuration
-BASE_DIR = r"C:\Users\kylee\Lab Documents\Fazal Lab\Punctalyze\punctalyze"
 
-image_folder  = os.path.join(BASE_DIR, "results")
-output_folder   = os.path.join(BASE_DIR, "results", "napari_masking")
-mask_folder = os.path.join(BASE_DIR, "results", "cellpose_masking")
+image_folder = 'results/initial_cleanup'
+mask_folder = 'results/cellpose_masking'
+output_folder = 'results/napari_masking'
 mask_filename = 'cellpose_cellmasks.npy'
 
 SATURATION_THRESHOLD = 60000
@@ -37,7 +36,7 @@ def ensure_output_folder(path):
 # IO
 def load_images(image_folder):
     return {
-        fname.replace('.npy', ''): np.load(os.path.join(image_folder, fname))
+        fname.replace('.npy', ''): np.load(f'{image_folder}/{fname}')
         for fname in os.listdir(image_folder) if fname.endswith('.npy')
     }
 

@@ -17,10 +17,8 @@ logger_setup();
 
 logger.info('import ok')
 
-BASE_DIR = r"C:\Users\kylee\Lab Documents\Fazal Lab\Punctalyze\punctalyze"
-
-image_folder  = os.path.join(BASE_DIR, "results")
-output_folder   = os.path.join(BASE_DIR, "results", "cellpose_masking")
+image_folder = 'results/initial_cleanup'
+output_folder = 'results/cellpose_masking'
 
 if not os.path.exists(output_folder):
     os.mkdir(output_folder)
@@ -129,8 +127,10 @@ if __name__ == '__main__':
     file_list = [filename for filename in os.listdir(
         image_folder) if 'npy' in filename]
 
-    images_dict = {filename.replace('.npy', ''): np.load(
-        os.path.join(image_folder, filename)) for filename in file_list}
+    images_dict = {
+        filename.replace('.npy', ''): np.load(f'{image_folder}/{filename}')
+        for filename in file_list
+    }
 
     # ---------------- prepare images ----------------
     # Cellpose-SAM will use the first 3 channels of your image, truncating the rest. It has been trained with the cytoplasm and nuclear channels in any order, with the other channel set to zero.
@@ -156,6 +156,6 @@ if __name__ == '__main__':
     visualise_cell_pose(puncta_blur[:7], masks, flows, big_images=True)
 
     # ---------------- save masks ----------------
-    out_path = os.path.join(output_folder, 'cellpose_cellmasks.npy')
+    out_path = f'{output_folder}/cellpose_cellmasks.npy'
     np.save(out_path, masks)
     logger.info(f'cell masks saved: {out_path}')

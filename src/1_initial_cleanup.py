@@ -18,10 +18,8 @@ logger.info('import ok')
 # configuration
 # -------------------
 
-BASE_DIR = r"C:\Users\kylee\Lab Documents\Fazal Lab\Punctalyze\punctalyze"
-
-input_path  = os.path.join(BASE_DIR, "raw_data")
-output_folder = os.path.join(BASE_DIR, "results")
+input_path = 'raw_data'
+output_folder = 'results/initial_cleanup'
 
 image_extensions = ['.czi', '.tif', '.tiff', '.lif', '.nd2']
 
