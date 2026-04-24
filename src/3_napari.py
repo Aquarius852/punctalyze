@@ -56,21 +56,18 @@ def save_mask(image_name, mask_stack):
 
 
 # Mask Filtering
-def remove_saturated_cells(image_stack, mask_stack, COI=COI):
-    '''Remove masks for saturated cells based on intensity threshold.'''
-    raw = image_stack[COI, :, :]
-    cells = mask_stack[0, :, :]
+def remove_saturated_labels(image_stack, label_mask, COI=COI):
+    raw = image_stack[COI]
+    labels = label_mask
 
-    valid_labels = []
-    for label in np.unique(cells)[1:]:
-        pixel_mask = (cells == label)
-        pixel_count = np.count_nonzero(pixel_mask)
-        saturated = np.count_nonzero(raw[pixel_mask] > SATURATION_THRESHOLD)
-        if saturated / pixel_count < SATURATION_FRAC_CUTOFF:
-            valid_labels.append(label)
+    valid = []
+    for lbl in np.unique(labels)[1:]:
+        m = labels == lbl
+        frac_sat = np.count_nonzero(raw[m] > SATURATION_THRESHOLD) / np.count_nonzero(m)
+        if frac_sat < SATURATION_FRAC_CUTOFF:
+            valid.append(lbl)
 
-    filtered_cells = np.where(np.isin(cells, valid_labels), cells, 0)
-    return filtered_cells
+    return np.where(np.isin(labels, valid), labels, 0)
 
 
 def filter_cells_by_fluoro_expression(image_stack, cells_mask):
@@ -108,7 +105,7 @@ def filter_small_nuclei(nuclei_mask):
 def filter_masks_auto(image_stack, mask_stack, filter_fluoro=False):
     cells, nuclei = mask_stack[0], mask_stack[1]
 
-    cells_filtered = remove_saturated_cells(image_stack, mask_stack)
+    cells_filtered = remove_saturated_labels(image_stack, cells)
     cells_filtered = remove_border_objects(cells_filtered)
 
     if filter_fluoro:

@@ -29,17 +29,15 @@ import functools
 print(os.getcwd())
 folder = 'results/cellpose_masking/'
 
-BASE_DIR = r"C:\Users\kylee\Lab Documents\Fazal Lab\Punctalyze\punctalyze"
-
 # special import, path to script
-napari_utils_path = os.path.join(BASE_DIR, 'src', '3_napari.py')  # adjust as needed
+napari_utils_path = 'src/3_napari.py/'
 
 # load the module dynamically due to annoying file name
 spec = importlib.util.spec_from_file_location("napari", napari_utils_path)
 napari_utils = importlib.util.module_from_spec(spec)
 sys.modules["napari_utils"] = napari_utils
 spec.loader.exec_module(napari_utils)
-remove_saturated_cells = napari_utils.remove_saturated_cells
+remove_saturated_labels = napari_utils.remove_saturated_labels
 
 logger.info('import ok')
 
@@ -48,7 +46,7 @@ plt.rcParams.update({'font.size': 14})
 sns.set_palette('Paired')
 
 # --- configuration ---
-SAT_FRAC_CUTOFF = 0.01  # for consistency with remove_saturated_cells
+SAT_FRAC_CUTOFF = 0.01  # for consistency with remove_saturated_labels
 
 # ----------------------------
 # CHANNEL CONFIGURATION
@@ -98,10 +96,10 @@ WATERSHED_COMPACTNESS = 0.0
 
 SCALE_UNIT = 'um'
 
-image_folder  = os.path.join(BASE_DIR, "results")
-output_folder   = os.path.join(BASE_DIR, "results", "summary_calculations")
-mask_folder = os.path.join(BASE_DIR, "results", "napari_masking")
-proofs_folder = os.path.join(BASE_DIR, "results", "proofs")
+image_folder = 'results/initial_cleanup/'
+output_folder = 'results/summary_calculations/'
+mask_folder = 'results/napari_masking/'
+proofs_folder = 'results/proofs/'
 
 for folder in [output_folder, proofs_folder]:
     if not os.path.exists(folder):
@@ -223,9 +221,9 @@ def filter_saturated_images(images, quant_masks, masks):
             quant_masks[name]
         ])
 
-        cells_or_nuclei_filtered = remove_saturated_cells(
+        cells_or_nuclei_filtered = remove_saturated_labels(
             image_stack=stack,
-            mask_stack=masks[name],
+            label_mask=quant_masks[name],
             COI=1  # PRIMARY_MEASURE_CHANNEL is stack index 1 here
         )
 
