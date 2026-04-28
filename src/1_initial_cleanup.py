@@ -18,7 +18,7 @@ logger.info('import ok')
 # configuration
 # -------------------
 
-input_path = 'raw_data'
+input_path = r"D:\R-Loop_Images\2026-04-14_R-Loop_Images_S9.6_488_FBL_647\REPLICATE3\Punctalyze_Analysis"
 output_folder = 'results/initial_cleanup'
 
 image_extensions = ['.czi', '.tif', '.tiff', '.lif', '.nd2']

@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -21,19 +22,19 @@ os.makedirs(output_folder, exist_ok=True)
 
 def load_summary_data(input_folder):
     return {
-        'puncta_features': pd.read_csv(f'{input_folder}puncta_features.csv'),
-        'puncta_features_reps': pd.read_csv(f'{input_folder}puncta_features_reps.csv'),
-        'puncta_features_normalized': pd.read_csv(f'{input_folder}puncta_features_normalized.csv'),
-        'puncta_features_normalized_reps': pd.read_csv(f'{input_folder}puncta_features_normalized_reps.csv'),
-        'percell': pd.read_csv(f'{input_folder}percell_puncta_features.csv'),
-        'percell_reps': pd.read_csv(f'{input_folder}percell_puncta_features_reps.csv'),
-        'percell_norm': pd.read_csv(f'{input_folder}percell_puncta_features_normalized.csv'),
-        'percell_norm_reps': pd.read_csv(f'{input_folder}percell_puncta_features_normalized_reps.csv')
+        'nucleoli_features': pd.read_csv(f'{input_folder}nucleoli_features.csv'),
+        'nucleoli_features_reps': pd.read_csv(f'{input_folder}nucleoli_features_reps.csv'),
+        'nucleoli_features_normalized': pd.read_csv(f'{input_folder}nucleoli_features_normalized.csv'),
+        'nucleoli_features_normalized_reps': pd.read_csv(f'{input_folder}nucleoli_features_normalized_reps.csv'),
+        'pernucleus': pd.read_csv(f'{input_folder}pernucleus_nucleoli_features.csv'),
+        'pernucleus_reps': pd.read_csv(f'{input_folder}pernucleus_nucleoli_features_reps.csv'),
+        'pernucleus_norm': pd.read_csv(f'{input_folder}pernucleus_nucleoli_features_normalized.csv'),
+        'pernucleus_norm_reps': pd.read_csv(f'{input_folder}pernucleus_nucleoli_features_normalized_reps.csv')
     }
 
 
 # --- Plotting Functions ---
-def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hue='tag', pairs=None, order=None, replicate_col='rep', cell_id_col='image_name'):
+def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hue='tag', pairs=None, order=None, replicate_col='rep', nucleus_id_col='image_name'):
     # --- compute N (replicates) ---
     if replicate_col in data_agg.columns:
         N_per_group = data_agg.groupby([x])[replicate_col].nunique()
@@ -41,11 +42,11 @@ def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hu
         # fallback: assume each row in aggregated data is a replicate
         N_per_group = data_agg.groupby([x]).size()
 
-    # --- compute n (cells) ---
-    if cell_id_col in data_raw.columns:
-        n_per_group = data_raw.groupby([x, hue])[cell_id_col].nunique()
+    # --- compute n (nucleuss) ---
+    if nucleus_id_col in data_raw.columns:
+        n_per_group = data_raw.groupby([x, hue])[nucleus_id_col].nunique()
     else:
-        # fallback: assume each row is a cell
+        # fallback: assume each row is a nucleus
         n_per_group = data_raw.groupby([x, hue]).size()
 
     # --- format text ---
@@ -56,7 +57,7 @@ def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hu
         summary_lines.append(f"{cond}: N={N_val}, n={n_val}")
     N_min, N_max = N_per_group.min(), N_per_group.max()
     n_min, n_max = n_per_group.min(), n_per_group.max()
-    summary_text = f"N = {N_min}–{N_max} images\nn = {n_min}–{n_max} cells"
+    summary_text = f"N = {N_min}–{N_max} images\nn = {n_min}–{n_max} nucleuss"
     
     fig, axes = plt.subplots(nrows=6, ncols=3, figsize=(20, 30))
     axes = axes.flatten()
@@ -154,18 +155,18 @@ if __name__ == '__main__':
     logger.info('Loading data...')
     dfs = load_summary_data(input_folder)
 
-    puncta_features = ['puncta_area', 'puncta_eccentricity', 'puncta_aspect_ratio',
-                'puncta_circularity', 'puncta_cv', 'puncta_skew',
-                'coi2_partition_coeff', 'coi1_partition_coeff', 'cell_std',
-                'cell_cv', 'cell_skew']
+    nucleoli_features = ['nucleoli_area', 'nucleoli_eccentricity', 'nucleoli_aspect_ratio',
+                'nucleoli_circularity', 'nucleoli_cv', 'nucleoli_skew',
+                'coi2_partition_coeff', 'coi1_partition_coeff', 'nucleus_std',
+                'nucleus_cv', 'nucleus_skew']
 
-    percell_features = ['cell_size', 'mean_puncta_area', 'puncta_area_proportion', 'puncta_count',
-            'puncta_mean_minor_axis', 'puncta_mean_major_axis', 'puncta_mean_aspect_ratio','avg_eccentricity',
-            'puncta_cv_mean', 'puncta_skew_mean', 'coi2_partition_coeff', 'coi1_partition_coeff', 'cell_std',
-            'cell_cv', 'cell_skew', 'cell_coi1_intensity_mean']
+    pernucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
+            'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
+            'nucleoli_cv_mean', 'nucleoli_skew_mean', 'coi2_partition_coeff', 'coi1_partition_coeff', 'nucleus_std',
+            'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean']
 
     # could use combinations function to generate pairs dynamically, but here we define them explicitly
-    conditions = dfs['puncta_features']['condition'].unique().tolist()
+    conditions = dfs['nucleoli_features']['condition'].unique().tolist()
     paired_conditions = combinations(conditions, 2)
     paired_list = list(paired_conditions)
     paired_list = [pair for pair in paired_list if 'WT' in pair]  # only compare to WT
@@ -175,10 +176,10 @@ if __name__ == '__main__':
 
     # prepare plotting configuration as [(title, features, raw_df, reps_df), (etc...)]
     plotting_configs = [
-        ('per puncta, raw', puncta_features, dfs['puncta_features'], dfs['puncta_features_reps'], 'perpuncta_raw.png'),
-        ('per puncta, normalized', puncta_features, dfs['puncta_features_normalized'], dfs['puncta_features_normalized_reps'], 'perpuncta_normalized.png'),
-        ('per cell, raw', percell_features, dfs['percell'], dfs['percell_reps'], 'percell_raw.png'),
-        ('per cell, normalized', percell_features, dfs['percell_norm'], dfs['percell_norm_reps'], 'percell_normalized.png'),
+        ('per nucleoli, raw', nucleoli_features, dfs['nucleoli_features'], dfs['nucleoli_features_reps'], 'pernucleoli_raw.png'),
+        ('per nucleoli, normalized', nucleoli_features, dfs['nucleoli_features_normalized'], dfs['nucleoli_features_normalized_reps'], 'pernucleoli_normalized.png'),
+        ('per nucleus, raw', pernucleus_features, dfs['pernucleus'], dfs['pernucleus_reps'], 'pernucleus_raw.png'),
+        ('per nucleus, normalized', pernucleus_features, dfs['pernucleus_norm'], dfs['pernucleus_norm_reps'], 'pernucleus_normalized.png'),
     ]
 
     # TODO make plotting more dynamic to handle stats/no-stats cases
@@ -190,4 +191,4 @@ if __name__ == '__main__':
 
     # TODO fix partition coefficient plots
     logger.info('Generating partition coefficient plots...')
-    plot_partition_coefficients(dfs['percell'], dfs['percell_reps'], 'condition-paired_percell_raw_partition-only.png', order=order)
+    plot_partition_coefficients(dfs['pernucleus'], dfs['pernucleus_reps'], 'condition-paired_pernucleus_raw_partition-only.png', order=order)
