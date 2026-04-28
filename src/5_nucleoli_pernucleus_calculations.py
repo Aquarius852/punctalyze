@@ -100,9 +100,62 @@ def save_dataframes(df, features, group_cols=['condition', 'tag', 'rep']):
     rep_norm_df.to_csv(f'{output_folder}pernucleus_nucleoli_features_normalized_reps.csv', index=False)
 
 
+def save_nucleoli_level_reps(df, features,
+                             group_cols=['condition', 'tag', 'rep'],
+                             intensity_norm_col='nucleus_coi1_intensity_mean'):
+
+    # --- raw per-nucleolus ---
+    df.to_csv(f'{output_folder}nucleoli_features.csv', index=False)
+
+    # --- replicate-averaged (raw) ---
+    rep_df = aggregate_features_by_group(df, group_cols, features)
+    rep_df.to_csv(f'{output_folder}nucleoli_features_reps.csv', index=False)
+
+    # --- normalized per-nucleolus ---
+    df_norm = df.copy()
+    for col in features:
+        df_norm[col] = df_norm[col] / df_norm[intensity_norm_col]
+
+    df_norm.to_csv(f'{output_folder}nucleoli_features_normalized.csv', index=False)
+
+    # --- replicate-averaged (normalized) ---
+    rep_norm_df = aggregate_features_by_group(df_norm, group_cols, features)
+    rep_norm_df.to_csv(
+        f'{output_folder}nucleoli_features_normalized_reps.csv',
+        index=False
+    )
+
+
 if __name__ == '__main__':
+    
     # Load feature information
     feature_information = pd.read_csv(f'{input_folder}nucleoli_features.csv')
+    
+    # Load per-nucleolus features
+    nucleoli = pd.read_csv(f'{input_folder}nucleoli_features.csv')
+
+    # Ensure metadata exists
+    nucleoli['tag'] = 'FBL'
+    nucleoli['condition'] = nucleoli['image_name'].str.split('_').str[1]
+    nucleoli['rep'] = nucleoli['image_name'].str.split('_').str[-2]
+
+    # Define nucleoli-level features (MUST match plotting script)
+    nucleoli_features = [
+        'nucleoli_area',
+        'nucleoli_eccentricity',
+        'nucleoli_aspect_ratio',
+        'nucleoli_circularity',
+        'nucleoli_cv',
+        'nucleoli_skew',
+        'coi2_partition_coeff',
+        'coi1_partition_coeff',
+        'nucleus_std',
+        'nucleus_cv',
+        'nucleus_skew'
+    ]
+
+    # Generate all nucleoli-level summary files
+    save_nucleoli_level_reps(nucleoli, nucleoli_features)
 
     # Calculate summarized features per nucleus
     summary = calculate_nucleus_features(feature_information)

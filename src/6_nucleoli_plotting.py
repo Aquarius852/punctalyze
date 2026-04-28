@@ -42,12 +42,18 @@ def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hu
         # fallback: assume each row in aggregated data is a replicate
         N_per_group = data_agg.groupby([x]).size()
 
-    # --- compute n (nucleuss) ---
-    if nucleus_id_col in data_raw.columns:
-        n_per_group = data_raw.groupby([x, hue])[nucleus_id_col].nunique()
+    # --- compute n (nuclei) ---
+    if hue is None:
+        if nucleus_id_col in data_raw.columns:
+            n_per_group = data_raw.groupby(x)[nucleus_id_col].nunique()
+        else:
+            n_per_group = data_raw.groupby(x).size()
     else:
-        # fallback: assume each row is a nucleus
-        n_per_group = data_raw.groupby([x, hue]).size()
+        if nucleus_id_col in data_raw.columns:
+            n_per_group = data_raw.groupby([x, hue])[nucleus_id_col].nunique()
+        else:
+            n_per_group = data_raw.groupby([x, hue]).size()
+
 
     # --- format text ---
     summary_lines = []
