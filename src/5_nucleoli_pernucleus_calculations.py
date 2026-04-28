@@ -162,8 +162,8 @@ if __name__ == '__main__':
 
     # Add metadata columns
     summary['tag'] = ['EYFP' for name in summary['image_name']]
-    summary['condition'] = summary['image_name'].str.split('-').str[0]
-    summary['rep'] = summary['image_name'].str.split('-').str[-2]
+    summary['condition'] = summary['image_name'].str.split('_').str[1]
+    summary['rep'] = summary['image_name'].str.split('_').str[-2]
 
     # Define features of interest (excluding metadata columns)
     cols = summary.columns.tolist()
@@ -172,9 +172,6 @@ if __name__ == '__main__':
         'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
         'nucleoli_cv_mean', 'nucleoli_skew_mean', 'coi2_partition_coeff', 'coi1_partition_coeff', 'nucleus_std',
         'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleoli_intensity_mean']
-
-    # # remove outliers based on z-score # this removes all data points for some reason
-    # summary = summary[(np.abs(stats.zscore(summary[cols[:-1]])) < 3).all(axis=1)]
 
     # Save dataframes (raw, averaged, normalized, normalized averaged)
     save_dataframes(summary, cols)
