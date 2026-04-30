@@ -80,7 +80,7 @@ def calculate_nucleus_features(df):
     return agg_df
 
 
-def save_dataframes(df, features, group_cols=['condition', 'tag', 'rep']):
+def save_nucleus_features(df, features, group_cols=['condition', 'tag', 'rep']):
     # Save raw summary per nucleus
     df.to_csv(f'{output_folder}pernucleus_nucleoli_features.csv', index=False)
 
@@ -130,14 +130,30 @@ if __name__ == '__main__':
     
     # Load feature information
     feature_information = pd.read_csv(f'{input_folder}nucleoli_features.csv')
-    
-    # Load per-nucleolus features
-    nucleoli = pd.read_csv(f'{input_folder}nucleoli_features.csv')
+
+    # Calculate summarized features per nucleus
+    summary = calculate_nucleus_features(feature_information)
+
+    # Add metadata columns
+    summary['tag'] = ['EYFP' for name in summary['image_name']]
+    summary['condition'] = summary['image_name'].str.split('_').str[1]
+    summary['rep'] = summary['image_name'].str.split('_').str[-2]
+
+    # Define features of interest (excluding metadata columns)
+    nucleus_features = summary.columns.tolist()
+    nucleus_features = [item for item in nucleus_features if '_coords' not in item]
+    nucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
+        'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
+        'nucleoli_cv_mean', 'nucleoli_skew_mean', 'coi2_partition_coeff', 'coi1_partition_coeff', 'nucleus_std',
+        'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleoli_intensity_mean']
+
+    # Save dataframes (raw, averaged, normalized, normalized averaged)
+    save_nucleus_features(summary, nucleus_features)
 
     # Ensure metadata exists
-    nucleoli['tag'] = 'FBL'
-    nucleoli['condition'] = nucleoli['image_name'].str.split('_').str[1]
-    nucleoli['rep'] = nucleoli['image_name'].str.split('_').str[-2]
+    feature_information['tag'] = 'FBL'
+    feature_information['condition'] = feature_information['image_name'].str.split('_').str[1]
+    feature_information['rep'] = feature_information['image_name'].str.split('_').str[-2]
 
     # Define nucleoli-level features (MUST match plotting script)
     nucleoli_features = [
@@ -153,27 +169,8 @@ if __name__ == '__main__':
         'nucleus_cv',
         'nucleus_skew'
     ]
-
+    
     # Generate all nucleoli-level summary files
-    save_nucleoli_level_reps(nucleoli, nucleoli_features)
-
-    # Calculate summarized features per nucleus
-    summary = calculate_nucleus_features(feature_information)
-
-    # Add metadata columns
-    summary['tag'] = ['EYFP' for name in summary['image_name']]
-    summary['condition'] = summary['image_name'].str.split('_').str[1]
-    summary['rep'] = summary['image_name'].str.split('_').str[-2]
-
-    # Define features of interest (excluding metadata columns)
-    cols = summary.columns.tolist()
-    cols = [item for item in cols if '_coords' not in item]
-    cols = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
-        'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
-        'nucleoli_cv_mean', 'nucleoli_skew_mean', 'coi2_partition_coeff', 'coi1_partition_coeff', 'nucleus_std',
-        'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleoli_intensity_mean']
-
-    # Save dataframes (raw, averaged, normalized, normalized averaged)
-    save_dataframes(summary, cols)
+    save_nucleoli_level_reps(feature_information, nucleoli_features)
 
     logger.info('saved nucleoli feature averaged-per-nucleus dataframes')
