@@ -44,10 +44,17 @@ def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hu
 
     # --- compute n (nuclei) ---
     if hue is None:
-        if nucleus_id_col in data_raw.columns:
-            n_per_group = data_raw.groupby(x)[nucleus_id_col].nunique()
+        if {'image_name', 'nucleus_number'}.issubset(data_raw.columns):
+            n_per_group = (
+                data_raw
+                .drop_duplicates(subset=['image_name', 'nucleus_number'])
+                .groupby(x)
+                .size()
+            )
         else:
+            # fallback if nucleus_number not available
             n_per_group = data_raw.groupby(x).size()
+
     else:
         if nucleus_id_col in data_raw.columns:
             n_per_group = data_raw.groupby([x, hue])[nucleus_id_col].nunique()
