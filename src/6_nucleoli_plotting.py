@@ -171,12 +171,13 @@ if __name__ == '__main__':
     nucleoli_features = ['nucleoli_area', 'nucleoli_eccentricity', 'nucleoli_aspect_ratio',
                 'nucleoli_circularity', 'nucleoli_cv', 'nucleoli_skew',
                 'coi2_partition_coeff', 'coi1_partition_coeff', 'nucleus_std',
-                'nucleus_cv', 'nucleus_skew']
+                'nucleus_cv', 'nucleus_skew', 'nucleoli_intensity_mean', 'nucleoli_intensity_mean_in_coi2',
+                'nucleoli_enrichment_coi1', 'nucleoli_mass_coi1']
 
     pernucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
             'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
             'nucleoli_cv_mean', 'nucleoli_skew_mean', 'coi2_partition_coeff', 'coi1_partition_coeff', 'nucleus_std',
-            'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean']
+            'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleus_coi2_intensity_mean']
 
     # could use combinations function to generate pairs dynamically, but here we define them explicitly
     conditions = dfs['nucleoli_features']['condition'].unique().tolist()
