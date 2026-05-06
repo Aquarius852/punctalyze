@@ -46,6 +46,7 @@ def calculate_nucleus_features(df):
         'nucleus_cv': 'mean',
         'nucleus_skew': 'mean',
         'nucleus_coi1_intensity_mean': 'mean',
+        'nucleus_coi2_intensity_mean': 'mean',
         'nucleoli_intensity_mean': 'mean'
     })
 
@@ -73,6 +74,7 @@ def calculate_nucleus_features(df):
         'nucleus_cv_mean': 'nucleus_cv',
         'nucleus_skew_mean': 'nucleus_skew',
         'nucleus_coi1_intensity_mean_mean': 'nucleus_coi1_intensity_mean',
+        'nucleus_coi2_intensity_mean_mean': 'nucleus_coi2_intensity_mean',
         'nucleoli_intensity_mean_mean': 'nucleoli_intensity_mean',
         'nucleus_size_mean': 'nucleus_size'
     })
