@@ -27,9 +27,7 @@ def load_summary_data(input_folder):
         'nucleoli_features_normalized': pd.read_csv(f'{input_folder}nucleoli_features_normalized.csv'),
         'nucleoli_features_normalized_reps': pd.read_csv(f'{input_folder}nucleoli_features_normalized_reps.csv'),
         'pernucleus': pd.read_csv(f'{input_folder}pernucleus_nucleoli_features.csv'),
-        'pernucleus_reps': pd.read_csv(f'{input_folder}pernucleus_nucleoli_features_reps.csv'),
-        'pernucleus_norm': pd.read_csv(f'{input_folder}pernucleus_nucleoli_features_normalized.csv'),
-        'pernucleus_norm_reps': pd.read_csv(f'{input_folder}pernucleus_nucleoli_features_normalized_reps.csv')
+        'pernucleus_reps': pd.read_csv(f'{input_folder}pernucleus_nucleoli_features_reps.csv')
     }
 
 
@@ -132,36 +130,6 @@ def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hu
         plt.close(fig)
 
 
-def plot_partition_coefficients(data_raw, data_agg, save_name, x='tag', hue='condition', order=None):
-    palette = ['#A6CEE3', '#1F78B4', '#F5CB5C']
-
-    raw = pd.melt(data_raw, id_vars=['image_name', 'tag', 'condition'],
-                  value_vars=['coi1_partition_coeff', 'coi2_partition_coeff'],
-                  var_name='channel', value_name='partition_coeff')
-
-    agg = pd.melt(data_agg, id_vars=['rep', 'tag', 'condition'],
-                  value_vars=['coi1_partition_coeff', 'coi2_partition_coeff'],
-                  var_name='channel', value_name='partition_coeff')
-
-    g = sns.FacetGrid(agg, col='channel', height=4.5, aspect=0.8)
-    g.map_dataframe(sns.boxplot, x=x, y='partition_coeff', palette=['.9'], hue=hue, hue_order=order, zorder=0)
-    g.map_dataframe(sns.stripplot, x=x, y='partition_coeff', dodge=True, edgecolor='k',
-                    linewidth=1, hue=hue, palette=palette, hue_order=order, zorder=2, size=8)
-
-    for ax_i, category in enumerate(g.col_names):
-        ax = g.axes.flat[ax_i]
-        subset = raw[raw['channel'] == category]
-        sns.stripplot(data=subset, x=x, y='partition_coeff', dodge=True,
-                      edgecolor='white', linewidth=1, alpha=0.4, hue=hue,
-                      palette=palette, hue_order=order, zorder=1, size=8, ax=ax)
-        ax.get_legend().remove()
-        ax.set_xticklabels(['COI1', 'COI2'])
-        ax.set_xlabel('')
-
-    g.set_titles(col_template='{col_name}')
-    g.tight_layout()
-    g.fig.savefig(os.path.join(output_folder, save_name), bbox_inches='tight', pad_inches=0.1, dpi=300)
-    plt.close(g.fig)
 
 
 if __name__ == '__main__':
@@ -170,13 +138,12 @@ if __name__ == '__main__':
 
     nucleoli_features = ['nucleoli_area', 'nucleoli_eccentricity', 'nucleoli_aspect_ratio',
                 'nucleoli_circularity', 'nucleoli_cv', 'nucleoli_skew',
-                'coi2_partition_coeff', 'coi1_partition_coeff', 'nucleus_std',
-                'nucleus_cv', 'nucleus_skew', 'nucleoli_intensity_mean', 'nucleoli_intensity_mean_in_coi2',
-                'nucleoli_enrichment_coi1', 'nucleoli_mass_coi1']
+                'nucleus_std',
+                'nucleus_cv', 'nucleus_skew', 'nucleoli_intensity_mean_coi1', 'nucleoli_intensity_mean_coi2']
 
     pernucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
             'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
-            'nucleoli_cv_mean', 'nucleoli_skew_mean', 'coi2_partition_coeff', 'coi1_partition_coeff', 'nucleus_std',
+            'nucleoli_cv_mean', 'nucleoli_skew_mean', 'nucleus_std',
             'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleus_coi2_intensity_mean']
 
     # could use combinations function to generate pairs dynamically, but here we define them explicitly
@@ -193,7 +160,6 @@ if __name__ == '__main__':
         ('per nucleoli, raw', nucleoli_features, dfs['nucleoli_features'], dfs['nucleoli_features_reps'], 'pernucleoli_raw.png'),
         ('per nucleoli, normalized', nucleoli_features, dfs['nucleoli_features_normalized'], dfs['nucleoli_features_normalized_reps'], 'pernucleoli_normalized.png'),
         ('per nucleus, raw', pernucleus_features, dfs['pernucleus'], dfs['pernucleus_reps'], 'pernucleus_raw.png'),
-        ('per nucleus, normalized', pernucleus_features, dfs['pernucleus_norm'], dfs['pernucleus_norm_reps'], 'pernucleus_normalized.png'),
     ]
 
     # TODO make plotting more dynamic to handle stats/no-stats cases
@@ -202,7 +168,3 @@ if __name__ == '__main__':
         title
         plot_stats(raw_df, reps_df, features, f'Calculated Parameters - {title}', filename,
                    x='condition', hue=None, pairs=paired_list, order=order)
-
-    # TODO fix partition coefficient plots
-    logger.info('Generating partition coefficient plots...')
-    plot_partition_coefficients(dfs['pernucleus'], dfs['pernucleus_reps'], 'condition-paired_pernucleus_raw_partition-only.png', order=order)

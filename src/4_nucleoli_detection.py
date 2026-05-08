@@ -1,11 +1,10 @@
 """
 Detect and analyze features of nucleoli per nucleus
-(Modified from your puncta pipeline)
+(Modified from the puncta pipeline)
+You may use COI1 and COI2, but you may also set the to the same
+channel and nothing will change (you will just get redundant
+COI1 and COI2 features).
 
-Updated so that:
-- nucleoli segmentation can use one channel
-- nucleolar/nuclear intensity measurements can use another channel
-- morphology always comes from the segmented nucleolar mask
 """
 
 import os
@@ -415,8 +414,8 @@ def collect_nucleoli_features(image_dict):
                 stats_rows.append({
                     "nucleoli_cv": cv,
                     "nucleoli_skew": skew_stat,
-                    "nucleoli_intensity_mean": mean1,
-                    "nucleoli_intensity_mean_in_coi2": mean2
+                    "nucleoli_intensity_mean_coi1": mean1,
+                    "nucleoli_intensity_mean_coi2": mean2
                 })
 
             df_stats = pd.DataFrame(stats_rows)
@@ -477,12 +476,7 @@ def extra_nucleoli_features(df):
         log_cols = [c + "_log" for c in hu_cols]
         df["nucleoli_hu_log_norm"] = np.sqrt(np.sum(df[log_cols].to_numpy()**2, axis=1))
 
-    df['coi2_partition_coeff'] = df['nucleoli_intensity_mean_in_coi2'] / (df['nucleus_coi2_intensity_mean'] + 1e-9)
-    df['coi1_partition_coeff'] = df['nucleoli_intensity_mean'] / (df['nucleus_coi1_intensity_mean'] + 1e-9)
-
     df['nucleoli_area_fraction_of_nucleus'] = df['nucleoli_area'] / (df['nucleus_size'] + 1e-9)
-    df['nucleoli_enrichment_coi1'] = df['nucleoli_intensity_mean'] / (df['nucleus_coi1_intensity_mean'] + 1e-9)
-    df['nucleoli_mass_coi1'] = df['nucleoli_area'] * df['nucleoli_intensity_mean']
 
     return df
 
