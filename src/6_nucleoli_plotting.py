@@ -139,7 +139,10 @@ if __name__ == '__main__':
     nucleoli_features = ['nucleoli_area', 'nucleoli_eccentricity', 'nucleoli_aspect_ratio',
                 'nucleoli_circularity', 'nucleoli_cv', 'nucleoli_skew',
                 'nucleus_std',
-                'nucleus_cv', 'nucleus_skew', 'nucleoli_intensity_mean_coi1', 'nucleoli_intensity_mean_coi2']
+                'nucleus_cv', 'nucleus_skew', 'coi1_nucleoli_intensity', 'coi1_nucleoli_mean_intensity',
+                'coi2_nucleoli_intensity', 'coi2_nucleoli_mean_intensity', 
+                'coi1_nucleolar_enrichment', 'coi2_nucleolar_enrichment',
+                'coi1_partition_coefficient', 'coi2_partition_coefficient']
 
     pernucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
             'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',

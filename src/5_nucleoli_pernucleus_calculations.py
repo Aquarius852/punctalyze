@@ -45,8 +45,12 @@ def calculate_nucleus_features(df):
         'nucleus_skew': 'mean',
         'nucleus_coi1_intensity_mean': 'mean',
         'nucleus_coi2_intensity_mean': 'mean',
-        'nucleoli_intensity_mean_coi1': 'mean',
-        'nucleoli_intensity_mean_coi2': 'mean'
+        'nucleoplasm_coi1_intensity_mean': 'mean',
+        'nucleoplasm_coi2_intensity_mean': 'mean',
+        'coi1_nucleoli_intensity': 'mean',
+        'coi1_nucleoli_mean_intensity': 'mean',
+        'coi2_nucleoli_intensity': 'mean',
+        'coi2_nucleoli_mean_intensity': 'mean'
     })
 
     # Flatten MultiIndex columns from aggregation
@@ -72,8 +76,12 @@ def calculate_nucleus_features(df):
         'nucleus_skew_mean': 'nucleus_skew',
         'nucleus_coi1_intensity_mean_mean': 'nucleus_coi1_intensity_mean',
         'nucleus_coi2_intensity_mean_mean': 'nucleus_coi2_intensity_mean',
-        'nucleoli_intensity_mean_coi1_mean': 'nucleoli_intensity_mean_coi1',
-        'nucleoli_intensity_mean_coi2_mean': 'nucleoli_intensity_mean_coi2',
+        'nucleoplasm_coi1_intensity_mean_mean': 'nucleoplasm_coi1_intensity_mean',
+        'nucleoplasm_coi2_intensity_mean_mean': 'nucleoplasm_coi2_intensity_mean',
+        'coi1_nucleoli_intensity_mean': 'coi1_nucleoli_intensity',
+        'coi1_nucleoli_mean_intensity_mean': 'coi1_nucleoli_mean_intensity',
+        'coi2_nucleoli_intensity_mean': 'coi2_nucleoli_intensity',
+        'coi2_nucleoli_mean_intensity_mean': 'coi2_nucleoli_mean_intensity',
         'nucleus_size_mean': 'nucleus_size'
     })
 
@@ -101,10 +109,16 @@ def save_nucleoli_level_reps(df, features,
     rep_df.to_csv(f'{output_folder}nucleoli_features_reps.csv', index=False)
 
     # --- normalized per-nucleolus ---
-    # Only normalize nucleoli intensity to correct for staining differences
+    # Calculate enrichment coefficient (nucleoli mean intensity / nuclear mean intensity)
+    # and partition coefficient (nucleoli mean intensity / nucleoplasm mean intensity)
     df_norm = df.copy()
-    df_norm['nucleoli_intensity_mean_coi1'] = df_norm['nucleoli_intensity_mean_coi1'] / df_norm[intensity_norm_col]
-    df_norm['nucleoli_intensity_mean_coi2'] = df_norm['nucleoli_intensity_mean_coi2'] / df_norm[intensity_norm_col]
+    df_norm['coi1_nucleolar_enrichment'] = df_norm['coi1_nucleoli_mean_intensity'] / df_norm[intensity_norm_col]
+    df_norm['coi2_nucleolar_enrichment'] = df_norm['coi2_nucleoli_mean_intensity'] / df_norm[intensity_norm_col]
+    
+    # Partition coefficient: nucleoli intensity / nucleoplasm intensity
+    nucleoplasm_norm_col = intensity_norm_col.replace('nucleus_', 'nucleoplasm_')
+    df_norm['coi1_partition_coefficient'] = df_norm['coi1_nucleoli_mean_intensity'] / df_norm[nucleoplasm_norm_col]
+    df_norm['coi2_partition_coefficient'] = df_norm['coi2_nucleoli_mean_intensity'] / df_norm[nucleoplasm_norm_col]
 
     df_norm.to_csv(f'{output_folder}nucleoli_features_normalized.csv', index=False)
 
@@ -135,7 +149,7 @@ if __name__ == '__main__':
     nucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
         'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
         'nucleoli_cv_mean', 'nucleoli_skew_mean', 'nucleus_std',
-        'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleus_coi2_intensity_mean', 'nucleoli_intensity_mean_coi1']
+        'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleus_coi2_intensity_mean', 'coi1_nucleolar_enrichment']
 
     # Save dataframes (raw, averaged, normalized, normalized averaged)
     save_nucleus_features(summary, nucleus_features)
@@ -156,8 +170,14 @@ if __name__ == '__main__':
         'nucleus_std',
         'nucleus_cv',
         'nucleus_skew',
-        'nucleoli_intensity_mean_coi1',
-        'nucleoli_intensity_mean_coi2'
+        'coi1_nucleoli_intensity',
+        'coi1_nucleoli_mean_intensity',
+        'coi2_nucleoli_intensity',
+        'coi2_nucleoli_mean_intensity',
+        'coi1_nucleolar_enrichment',
+        'coi2_nucleolar_enrichment',
+        'coi1_partition_coefficient',
+        'coi2_partition_coefficient'
     ]
     
     # Generate all nucleoli-level summary files

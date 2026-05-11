@@ -406,20 +406,38 @@ def collect_nucleoli_features(image_dict):
                 v_primary = primary_img[o_mask]
                 v_secondary = secondary_img[o_mask]
 
-                mean1 = float(np.mean(v_primary)) if v_primary.size else np.nan
-                mean2 = float(np.mean(v_secondary)) if v_secondary.size else np.nan
+                # Raw and mean intensity for primary channel
+                raw_intensity_coi1 = float(np.sum(v_primary)) if v_primary.size else np.nan
+                mean_intensity_coi1 = float(np.mean(v_primary)) if v_primary.size else np.nan
+                nucleoli_area = o_mask.sum()
+                mean_intensity_per_area_coi1 = raw_intensity_coi1 / nucleoli_area if nucleoli_area > 0 else np.nan
+                
+                # Raw and mean intensity for secondary channel
+                raw_intensity_coi2 = float(np.sum(v_secondary)) if v_secondary.size else np.nan
+                mean_intensity_coi2 = float(np.mean(v_secondary)) if v_secondary.size else np.nan
+                mean_intensity_per_area_coi2 = raw_intensity_coi2 / nucleoli_area if nucleoli_area > 0 else np.nan
+                
                 cv = float(np.std(v_primary) / (np.mean(v_primary) + 1e-9)) if v_primary.size else np.nan
                 skew_stat = skewtest(v_primary).statistic if v_primary.size >= 8 else np.nan
 
                 stats_rows.append({
                     "nucleoli_cv": cv,
                     "nucleoli_skew": skew_stat,
-                    "nucleoli_intensity_mean_coi1": mean1,
-                    "nucleoli_intensity_mean_coi2": mean2
+                    "coi1_nucleoli_intensity": raw_intensity_coi1,
+                    "coi1_nucleoli_mean_intensity": mean_intensity_per_area_coi1,
+                    "coi2_nucleoli_intensity": raw_intensity_coi2,
+                    "coi2_nucleoli_mean_intensity": mean_intensity_per_area_coi2
                 })
 
             df_stats = pd.DataFrame(stats_rows)
             df = pd.concat([df_n.reset_index(drop=True), df_stats], axis=1)
+
+            # nucleoplasm-level stats (nucleus excluding nucleoli) from PRIMARY / SECONDARY measurement channels
+            nucleoplasm_mask = nuc_mask & (nuc_nucleoli == 0)
+            v1_nucleoplasm = primary_img[nucleoplasm_mask]
+            v2_nucleoplasm = secondary_img[nucleoplasm_mask]
+            mean1_nucleoplasm = float(np.mean(v1_nucleoplasm)) if v1_nucleoplasm.size else np.nan
+            mean2_nucleoplasm = float(np.mean(v2_nucleoplasm)) if v2_nucleoplasm.size else np.nan
 
             # nucleus-level stats from PRIMARY / SECONDARY measurement channels
             v1_nuc = primary_img[nuc_mask]
@@ -435,6 +453,8 @@ def collect_nucleoli_features(image_dict):
             df['nucleus_skew'] = skewtest(v1_nuc).statistic if v1_nuc.size >= 8 else np.nan
             df['nucleus_coi1_intensity_mean'] = mean1_nuc
             df['nucleus_coi2_intensity_mean'] = float(np.mean(v2_nuc)) if v2_nuc.size else np.nan
+            df['nucleoplasm_coi1_intensity_mean'] = mean1_nucleoplasm
+            df['nucleoplasm_coi2_intensity_mean'] = mean2_nucleoplasm
             df['nucleus_coords'] = [contour] * len(df)
 
             # save channel metadata for traceability
