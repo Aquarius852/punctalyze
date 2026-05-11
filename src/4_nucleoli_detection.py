@@ -406,16 +406,13 @@ def collect_nucleoli_features(image_dict):
                 v_primary = primary_img[o_mask]
                 v_secondary = secondary_img[o_mask]
 
-                # Raw and mean intensity for primary channel
+                # Raw and mean intensity measurements for primary channel
                 raw_intensity_coi1 = float(np.sum(v_primary)) if v_primary.size else np.nan
                 mean_intensity_coi1 = float(np.mean(v_primary)) if v_primary.size else np.nan
-                nucleoli_area = o_mask.sum()
-                mean_intensity_per_area_coi1 = raw_intensity_coi1 / nucleoli_area if nucleoli_area > 0 else np.nan
                 
-                # Raw and mean intensity for secondary channel
+                # Raw and mean intensity measurements for secondary channel
                 raw_intensity_coi2 = float(np.sum(v_secondary)) if v_secondary.size else np.nan
                 mean_intensity_coi2 = float(np.mean(v_secondary)) if v_secondary.size else np.nan
-                mean_intensity_per_area_coi2 = raw_intensity_coi2 / nucleoli_area if nucleoli_area > 0 else np.nan
                 
                 cv = float(np.std(v_primary) / (np.mean(v_primary) + 1e-9)) if v_primary.size else np.nan
                 skew_stat = skewtest(v_primary).statistic if v_primary.size >= 8 else np.nan
@@ -424,9 +421,9 @@ def collect_nucleoli_features(image_dict):
                     "nucleoli_cv": cv,
                     "nucleoli_skew": skew_stat,
                     "coi1_nucleoli_intensity": raw_intensity_coi1,
-                    "coi1_nucleoli_mean_intensity": mean_intensity_per_area_coi1,
+                    "coi1_nucleoli_mean_intensity": mean_intensity_coi1,
                     "coi2_nucleoli_intensity": raw_intensity_coi2,
-                    "coi2_nucleoli_mean_intensity": mean_intensity_per_area_coi2
+                    "coi2_nucleoli_mean_intensity": mean_intensity_coi2
                 })
 
             df_stats = pd.DataFrame(stats_rows)
