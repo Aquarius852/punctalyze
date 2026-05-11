@@ -1,4 +1,6 @@
 """
+This step is only necessary if you are downloading data from online repositories like Zenodo. If you are using your own images, you can skip this step and move on to 1_initial_cleanup.py.
+
 Download zip file from a specified URL, extract its contents into designated folder, and flatten the directory structure by moving all files directly into the target folder.
 After extraction, delete the original zip file.
 """

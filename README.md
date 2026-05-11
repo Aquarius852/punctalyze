@@ -1,6 +1,8 @@
 ## Fluorescence image analyses
 This repository contains image analysis scripts used in the Boeynaems lab at the Baylor College of Medicine in Houston, TX, USA. These scripts were adapted by Sovanny Taylor and Olivia M. S. Carmo for analysis of intracellular puncta to compare puncta features between conditions, and calculate other useful information like partitioning coefficient. The structure and strategy was adapted from previous work led by Olivia M. S. Carmo and Dezerae Cox<sup id="a1">[1](#f1)</sup> [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6747921.svg)](https://github.com/ocarmo/EMP1-trafficking_PTP7-analysis/tree/v1.1)
 
+This specific version of punctalyze was forked and Modified for use in the Fazal Lab by Kyle Nielson.
+
 ### Analysis software
 This repo relies extensively on the following python packages: [CellPose](https://www.cellpose.org/)<sup id="a2">[2](#f2)</sup>, [napari](https://napari.org/)<sup id="a3">[3](#f3)</sup>, and [scikit-image](https://scikit-image.org/)<sup id="a4">[4](#f4)</sup>
 

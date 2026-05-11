@@ -1,5 +1,7 @@
 """
 Import data as numpy array
+
+The only thing YOU should have to do to make this program work is change the input_path to point to your raw images (.czi files work best). Alternatively, inside the punctalyze folder, you can make a raw_data folder and move you images there. All other necessary folders will be created and modified by the program once running.
 """
 
 # used bioiamge-fazallab environment
