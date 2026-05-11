@@ -151,7 +151,7 @@ if __name__ == '__main__':
     paired_conditions = combinations(conditions, 2)
     paired_list = list(paired_conditions)
     paired_list = [pair for pair in paired_list if 'WT' in pair]  # only compare to WT
-    order = ['DFMO', 'SP1HR', 'SP2HR', 'SP4HR', 'SP24HR']
+    order = sorted(conditions)
     # palette = ['#A6CEE3', '#1F78B4', '#F5CB5C']
     palette = sns.color_palette('tab10', n_colors=len(conditions))
 
