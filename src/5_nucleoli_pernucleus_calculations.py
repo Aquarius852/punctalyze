@@ -104,8 +104,12 @@ def save_nucleoli_level_reps(df, features,
     # --- raw per-nucleolus ---
     df.to_csv(f'{output_folder}nucleoli_features.csv', index=False)
 
+    # Separate raw and normalized features
+    raw_features = [f for f in features if f not in ['coi1_nucleolar_enrichment', 'coi2_nucleolar_enrichment', 
+                                                       'coi1_partition_coefficient', 'coi2_partition_coefficient']]
+    
     # --- replicate-averaged (raw) ---
-    rep_df = aggregate_features_by_group(df, group_cols, features)
+    rep_df = aggregate_features_by_group(df, group_cols, raw_features)
     rep_df.to_csv(f'{output_folder}nucleoli_features_reps.csv', index=False)
 
     # --- normalized per-nucleolus ---
@@ -149,7 +153,7 @@ if __name__ == '__main__':
     nucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
         'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
         'nucleoli_cv_mean', 'nucleoli_skew_mean', 'nucleus_std',
-        'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleus_coi2_intensity_mean', 'coi1_nucleolar_enrichment']
+        'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleus_coi2_intensity_mean']
 
     # Save dataframes (raw, averaged, normalized, normalized averaged)
     save_nucleus_features(summary, nucleus_features)

@@ -136,12 +136,13 @@ if __name__ == '__main__':
     logger.info('Loading data...')
     dfs = load_summary_data(input_folder)
 
-    nucleoli_features = ['nucleoli_area', 'nucleoli_eccentricity', 'nucleoli_aspect_ratio',
+    nucleoli_features_raw = ['nucleoli_area', 'nucleoli_eccentricity', 'nucleoli_aspect_ratio',
                 'nucleoli_circularity', 'nucleoli_cv', 'nucleoli_skew',
                 'nucleus_std',
                 'nucleus_cv', 'nucleus_skew', 'coi1_nucleoli_intensity', 'coi1_nucleoli_mean_intensity',
-                'coi2_nucleoli_intensity', 'coi2_nucleoli_mean_intensity', 
-                'coi1_nucleolar_enrichment', 'coi2_nucleolar_enrichment',
+                'coi2_nucleoli_intensity', 'coi2_nucleoli_mean_intensity']
+
+    nucleoli_features_normalized = nucleoli_features_raw + ['coi1_nucleolar_enrichment', 'coi2_nucleolar_enrichment',
                 'coi1_partition_coefficient', 'coi2_partition_coefficient']
 
     pernucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
@@ -160,8 +161,8 @@ if __name__ == '__main__':
 
     # prepare plotting configuration as [(title, features, raw_df, reps_df), (etc...)]
     plotting_configs = [
-        ('per nucleoli, raw', nucleoli_features, dfs['nucleoli_features'], dfs['nucleoli_features_reps'], 'pernucleoli_raw.png'),
-        ('per nucleoli, normalized', nucleoli_features, dfs['nucleoli_features_normalized'], dfs['nucleoli_features_normalized_reps'], 'pernucleoli_normalized.png'),
+        ('per nucleoli, raw', nucleoli_features_raw, dfs['nucleoli_features'], dfs['nucleoli_features_reps'], 'pernucleoli_raw.png'),
+        ('per nucleoli, normalized', nucleoli_features_normalized, dfs['nucleoli_features_normalized'], dfs['nucleoli_features_normalized_reps'], 'pernucleoli_normalized.png'),
         ('per nucleus, raw', pernucleus_features, dfs['pernucleus'], dfs['pernucleus_reps'], 'pernucleus_raw.png'),
     ]
 
