@@ -223,7 +223,7 @@ def plot_pairwise_comparison(data, features, condition1, condition2, title, outp
             cond_data = plot_data[plot_data['condition'] == condition][feature].dropna()
             x_pos = [condition] * len(cond_data)
             # Add jitter
-            x_jitter = np.random.normal(len([condition1, condition2].index(condition)), 0.04, len(cond_data))
+            x_jitter = np.random.normal([condition1, condition2].index(condition), 0.04, len(cond_data))
             ax.scatter(x_jitter, cond_data, s=150, alpha=0.6, edgecolors='k', linewidth=1.5)
         
         # Calculate statistics
@@ -251,7 +251,7 @@ def plot_pairwise_comparison(data, features, condition1, condition2, title, outp
         text_str = f"p = {p_val:.4f} {sig_marker}\nCohen's d = {effect_size:.3f}"
         ax.text(0.5, 0.95, text_str, transform=ax.transAxes, fontsize=10,
                 verticalalignment='top', horizontalalignment='center',
-                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5), tag='stats_text')
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
     
     # Hide unused subplots
     for ax in axes[n_features:]:
@@ -323,7 +323,7 @@ def apply_bonferroni_and_plot(all_results, data, features, comparison_pairs, out
             # Plot data
             for condition in [cond1, cond2]:
                 cond_data = plot_data[plot_data['condition'] == condition][feature].dropna()
-                x_jitter = np.random.normal(len([cond1, cond2].index(condition)), 0.04, len(cond_data))
+                x_jitter = np.random.normal([cond1, cond2].index(condition), 0.04, len(cond_data))
                 ax.scatter(x_jitter, cond_data, s=150, alpha=0.6, edgecolors='k', linewidth=1.5)
             
             # Add mean lines
@@ -432,8 +432,8 @@ if __name__ == '__main__':
     
     # Define comparison pairs
     comparison_pairs = [
-        ('DFMO', 'SP-4HRS'),
-        ('DFMO', 'SP-24HRS')
+        ('DFMO', 'SP04HR'),
+        ('DFMO', 'SP24HR')
     ]
     
     # Store results from all comparisons
