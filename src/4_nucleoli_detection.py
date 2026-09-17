@@ -62,11 +62,11 @@ SAT_FRAC_CUTOFF = 0.01  # for consistency with remove_saturated_labels
 
 SEGMENTATION_CHANNEL = 0
 PRIMARY_MEASURE_CHANNEL = 1
-SECONDARY_MEASURE_CHANNEL = 1
+SECONDARY_MEASURE_CHANNEL = 2
 
 SEGMENTATION_CHANNEL_NAME = 'fbl'
 PRIMARY_MEASURE_CHANNEL_NAME = 's9'
-SECONDARY_MEASURE_CHANNEL_NAME = 's9'
+SECONDARY_MEASURE_CHANNEL_NAME = 'Pol 1'
 
 SCALE_PX = (294.67 / 2720)  # size of one pixel in units specified by the next constant
 SHOW_SURVIVORS_ONLY = True  # proofs show nucleoli masks after filtering
@@ -80,16 +80,17 @@ QUANT_REGION = "nucleus"
 NUC_SMOOTH_SIGMA = 2.0        # stronger smoothing to suppress texture
 THR_METHOD = "otsu"           # "otsu" or "mad"
 THR_K = 2.5                   # only used if THR_METHOD="mad"
-MIN_NUCLEOLI_SIZE = 250
-MAX_NUCLEOLI_SIZE = 8000
+MIN_NUCLEOLI_SIZE = 1000
+MAX_NUCLEOLI_SIZE = 50000
 FILL_HOLES = True
+NUCLEUS_EDGE_BUFFER_PX = 20   # exclude likely boundary/background signal
 
 # morphology for joining fragmented nucleolar regions
 CLOSING_RADIUS = 2
 OPENING_RADIUS = 0
 
 # keep off for now
-SPLIT_TOUCHING = False
+SPLIT_TOUCHING = True
 PEAK_MIN_DIST = 12
 WATERSHED_COMPACTNESS = 0.0
 
@@ -282,7 +283,11 @@ def detect_nucleoli_labels_for_image(
             continue
 
         region = (nucleus_labels == lbl)
-        vals = smooth[region]
+        detection_region = morphology.binary_erosion(
+            region,
+            morphology.disk(NUCLEUS_EDGE_BUFFER_PX)
+        )
+        vals = smooth[detection_region]
 
         if vals.size < 20:
             continue
@@ -299,7 +304,7 @@ def detect_nucleoli_labels_for_image(
         else:
             raise ValueError("THR_METHOD must be 'mad' or 'otsu'")
 
-        binary = (smooth > thr) & region
+        binary = (smooth > thr) & detection_region
 
         binary = morphology.remove_small_objects(binary, min_size=min_size)
 
@@ -537,7 +542,11 @@ def debug_nucleoli_steps(
             continue
 
         region = (nucleus_labels == lbl)
-        vals = smooth[region]
+        detection_region = morphology.binary_erosion(
+            region,
+            morphology.disk(NUCLEUS_EDGE_BUFFER_PX)
+        )
+        vals = smooth[detection_region]
         if vals.size < 20:
             continue
 
@@ -553,7 +562,7 @@ def debug_nucleoli_steps(
         else:
             raise ValueError("THR_METHOD must be 'mad' or 'otsu'")
 
-        b = (smooth > thr) & region
+        b = (smooth > thr) & detection_region
         binary_raw |= b
 
         b = morphology.remove_small_objects(b, min_size=min_size)
