@@ -60,13 +60,13 @@ SAT_FRAC_CUTOFF = 0.01  # for consistency with remove_saturated_labels
 # SECONDARY_MEASURE_CHANNEL:
 #   optional comparison channel measured inside the SAME masks
 
-SEGMENTATION_CHANNEL = 0
-PRIMARY_MEASURE_CHANNEL = 1
-SECONDARY_MEASURE_CHANNEL = 1
+SEGMENTATION_CHANNEL = 1
+PRIMARY_MEASURE_CHANNEL = 0
+SECONDARY_MEASURE_CHANNEL = 2
 
-SEGMENTATION_CHANNEL_NAME = 'fbl'
+SEGMENTATION_CHANNEL_NAME = 'npm1'
 PRIMARY_MEASURE_CHANNEL_NAME = 's9'
-SECONDARY_MEASURE_CHANNEL_NAME = 's9'
+SECONDARY_MEASURE_CHANNEL_NAME = 'pol1'
 
 SCALE_PX = (294.67 / 2720)  # size of one pixel in units specified by the next constant
 SHOW_SURVIVORS_ONLY = True  # proofs show nucleoli masks after filtering

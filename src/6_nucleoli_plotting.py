@@ -403,7 +403,7 @@ if __name__ == '__main__':
     paired_conditions = combinations(conditions, 2)
     paired_list = list(paired_conditions)
     paired_list = [pair for pair in paired_list if 'WT' in pair]  # only compare to WT
-    order = ["SP0HR","SP1HR","SP2HR","SP4HR","SP8HR","SP24HR"]
+    order = ["NoDFMO","SP0HR","SP8HR"]
     # palette = ['#A6CEE3', '#1F78B4', '#F5CB5C']
     palette = sns.color_palette('tab10', n_colors=len(conditions))
 
@@ -432,8 +432,9 @@ if __name__ == '__main__':
     
     # Define comparison pairs
     comparison_pairs = [
-        ('SP0HR', 'SP4HR'),
-        ('SP0HR', 'SP8HR')
+        ('SP0HR', 'SP8HR'),
+        ('NoDFMO', 'SP0HR'),
+        ('NoDFMO', 'SP8HR')
     ]
     
     # Store results from all comparisons
