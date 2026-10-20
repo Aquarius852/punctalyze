@@ -1,5 +1,6 @@
 
 import os
+import re
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -17,6 +18,25 @@ nucleoli_detection_utils = importlib.util.module_from_spec(spec)
 sys.modules['nucleoli_detection_utils'] = nucleoli_detection_utils
 spec.loader.exec_module(nucleoli_detection_utils)
 aggregate_features_by_group = nucleoli_detection_utils.aggregate_features_by_group
+
+
+def apply_channel_name_aliases(columns, primary_name=None, secondary_name=None):
+    """Replace generic COI1/COI2 tokens with actual measurement channel names."""
+    primary_name = primary_name or getattr(nucleoli_detection_utils, 'PRIMARY_MEASURE_CHANNEL_NAME', 'coi1')
+    secondary_name = secondary_name or getattr(nucleoli_detection_utils, 'SECONDARY_MEASURE_CHANNEL_NAME', 'coi2')
+    replacements = [
+        ('coi1', str(primary_name)),
+        ('coi2', str(secondary_name)),
+    ]
+
+    renamed = []
+    for column in columns:
+        value = str(column)
+        for token, replacement in replacements:
+            value = re.sub(rf'(?i){re.escape(token)}', replacement, value)
+        renamed.append(value)
+    return renamed
+
 
 logger.info('import ok')
 
@@ -85,6 +105,12 @@ def calculate_nucleus_features(df):
         'nucleus_size_mean': 'nucleus_size'
     })
 
+    agg_df.columns = apply_channel_name_aliases(
+        agg_df.columns,
+        primary_name=getattr(nucleoli_detection_utils, 'PRIMARY_MEASURE_CHANNEL_NAME', 'coi1'),
+        secondary_name=getattr(nucleoli_detection_utils, 'SECONDARY_MEASURE_CHANNEL_NAME', 'coi2')
+    )
+
     return agg_df
 
 
@@ -150,10 +176,12 @@ if __name__ == '__main__':
     # Define features of interest (excluding metadata columns)
     nucleus_features = summary.columns.tolist()
     nucleus_features = [item for item in nucleus_features if '_coords' not in item]
+    primary_channel_name = getattr(nucleoli_detection_utils, 'PRIMARY_MEASURE_CHANNEL_NAME', 'coi1')
+    secondary_channel_name = getattr(nucleoli_detection_utils, 'SECONDARY_MEASURE_CHANNEL_NAME', 'coi2')
     nucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
         'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
         'nucleoli_cv_mean', 'nucleoli_skew_mean', 'nucleus_std',
-        'nucleus_cv', 'nucleus_skew', 'nucleus_coi1_intensity_mean', 'nucleus_coi2_intensity_mean']
+        'nucleus_cv', 'nucleus_skew', f'nucleus_{primary_channel_name}_intensity_mean', f'nucleus_{secondary_channel_name}_intensity_mean']
 
     # Save dataframes (raw, averaged, normalized, normalized averaged)
     save_nucleus_features(summary, nucleus_features)
