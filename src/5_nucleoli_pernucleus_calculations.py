@@ -65,6 +65,8 @@ def calculate_nucleus_features(df):
         'nucleus_skew': 'mean',
         'nucleus_coi1_intensity_mean': 'mean',
         'nucleus_coi2_intensity_mean': 'mean',
+        'nucleus_segmentation_intensity': 'mean',
+        'nucleus_segmentation_intensity_per_area': 'mean',
         'nucleoplasm_coi1_intensity_mean': 'mean',
         'nucleoplasm_coi2_intensity_mean': 'mean',
         'coi1_nucleoli_intensity': 'mean',
@@ -96,6 +98,8 @@ def calculate_nucleus_features(df):
         'nucleus_skew_mean': 'nucleus_skew',
         'nucleus_coi1_intensity_mean_mean': 'nucleus_coi1_intensity_mean',
         'nucleus_coi2_intensity_mean_mean': 'nucleus_coi2_intensity_mean',
+        'nucleus_segmentation_intensity_mean': 'nucleus_segmentation_intensity',
+        'nucleus_segmentation_intensity_per_area_mean': 'nucleus_segmentation_intensity_per_area',
         'nucleoplasm_coi1_intensity_mean_mean': 'nucleoplasm_coi1_intensity_mean',
         'nucleoplasm_coi2_intensity_mean_mean': 'nucleoplasm_coi2_intensity_mean',
         'coi1_nucleoli_intensity_mean': 'coi1_nucleoli_intensity',
@@ -181,7 +185,9 @@ if __name__ == '__main__':
     nucleus_features = ['nucleus_size', 'mean_nucleoli_area', 'nucleoli_area_proportion', 'nucleoli_count',
         'nucleoli_mean_minor_axis', 'nucleoli_mean_major_axis', 'nucleoli_mean_aspect_ratio','avg_eccentricity',
         'nucleoli_cv_mean', 'nucleoli_skew_mean', 'nucleus_std',
-        'nucleus_cv', 'nucleus_skew', f'nucleus_{primary_channel_name}_intensity_mean', f'nucleus_{secondary_channel_name}_intensity_mean']
+        'nucleus_cv', 'nucleus_skew',
+        'nucleus_segmentation_intensity', 'nucleus_segmentation_intensity_per_area',
+        f'nucleus_{primary_channel_name}_intensity_mean', f'nucleus_{secondary_channel_name}_intensity_mean']
 
     # Save dataframes (raw, averaged, normalized, normalized averaged)
     save_nucleus_features(summary, nucleus_features)
