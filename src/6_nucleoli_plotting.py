@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -32,8 +33,16 @@ def load_summary_data(input_folder):
     }
 
 
+def format_feature_label(feature_name, primary_channel_name='primary', secondary_channel_name='secondary'):
+    """Display channel names instead of generic COI tokens while keeping data columns unchanged."""
+    feature_name = str(feature_name)
+    feature_name = re.sub(r'(?i)coi1', str(primary_channel_name), feature_name)
+    feature_name = re.sub(r'(?i)coi2', str(secondary_channel_name), feature_name)
+    return feature_name
+
+
 # --- Plotting Functions ---
-def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hue='tag', pairs=None, order=None, replicate_col='rep', nucleus_id_col='image_name'):
+def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hue='tag', pairs=None, order=None, replicate_col='rep', nucleus_id_col='image_name', primary_channel_name='primary', secondary_channel_name='secondary'):
     # --- compute N (replicates) ---
     if replicate_col in data_agg.columns:
         N_per_group = data_agg.groupby([x])[replicate_col].nunique()
@@ -77,12 +86,14 @@ def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hu
     if hue is None:
         for i, feature in enumerate(features):
             ax = axes[i]
+            display_feature = format_feature_label(feature, primary_channel_name, secondary_channel_name)
             sns.stripplot(data=data_raw, x=x, y=feature, dodge=True, edgecolor='white',
                         linewidth=1, size=8, alpha=0.1, order=order, ax=ax, zorder=0)
             sns.violinplot(data=data_agg, x=x, y=feature, order=order, color='gray', ax=ax, zorder=1)
             sns.stripplot(data=data_agg, x=x, y=feature, dodge=True, edgecolor='k',
                         linewidth=1, size=8, order=order, ax=ax, zorder=2)
             sns.despine()
+            ax.set_ylabel(display_feature)
 
             if pairs:
                 annotator = Annotator(ax, pairs, data=data_agg, x=x, y=feature, order=order)
@@ -103,6 +114,7 @@ def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hu
     else:   
         for i, feature in enumerate(features):
             ax = axes[i]
+            display_feature = format_feature_label(feature, primary_channel_name, secondary_channel_name)
             sns.stripplot(data=data_raw, x=x, y=feature, dodge=True, edgecolor='white',
                         linewidth=1, size=8, alpha=0.4, hue=hue, order=order, ax=ax)
             sns.stripplot(data=data_agg, x=x, y=feature, dodge=True, edgecolor='k',
@@ -112,6 +124,7 @@ def plot_stats(data_raw, data_agg, features, title, save_name, x='condition', hu
 
             ax.legend_.remove()
             sns.despine()
+            ax.set_ylabel(display_feature)
 
             if pairs:
                 annotator = Annotator(ax, pairs, data=data_agg, x=x, y=feature, hue=hue, order=order)
@@ -173,7 +186,7 @@ def calculate_pairwise_stats(data, feature, condition1, condition2):
     }
 
 
-def plot_pairwise_comparison(data, features, condition1, condition2, title, output_file):
+def plot_pairwise_comparison(data, features, condition1, condition2, title, output_file, primary_channel_name='primary', secondary_channel_name='secondary'):
     """
     Create focused plot comparing two conditions across selected features.
     Shows individual replicate means as scatter points.
@@ -239,7 +252,7 @@ def plot_pairwise_comparison(data, features, condition1, condition2, title, outp
         # Formatting
         ax.set_xticks([0, 1])
         ax.set_xticklabels([condition1, condition2])
-        ax.set_ylabel(feature, fontsize=12, fontweight='bold')
+        ax.set_ylabel(format_feature_label(feature, primary_channel_name, secondary_channel_name), fontsize=12, fontweight='bold')
         ax.grid(axis='y', alpha=0.3)
         sns.despine()
         
@@ -265,7 +278,7 @@ def plot_pairwise_comparison(data, features, condition1, condition2, title, outp
     return stats_results
 
 
-def apply_bonferroni_and_plot(all_results, data, features, comparison_pairs, output_folder):
+def apply_bonferroni_and_plot(all_results, data, features, comparison_pairs, output_folder, primary_channel_name='primary', secondary_channel_name='secondary'):
     """
     Apply Bonferroni correction per feature across all comparisons and generate corrected plots.
     
@@ -335,7 +348,7 @@ def apply_bonferroni_and_plot(all_results, data, features, comparison_pairs, out
             # Formatting
             ax.set_xticks([0, 1])
             ax.set_xticklabels([cond1, cond2])
-            ax.set_ylabel(feature, fontsize=12, fontweight='bold')
+            ax.set_ylabel(format_feature_label(feature, primary_channel_name, secondary_channel_name), fontsize=12, fontweight='bold')
             ax.grid(axis='y', alpha=0.3)
             sns.despine()
             
@@ -384,6 +397,9 @@ if __name__ == '__main__':
     logger.info('Loading data...')
     dfs = load_summary_data(input_folder)
 
+    primary_channel_name = dfs['nucleoli_features']['primary_measure_channel_name'].dropna().iloc[0] if 'primary_measure_channel_name' in dfs['nucleoli_features'].columns and dfs['nucleoli_features']['primary_measure_channel_name'].notna().any() else 'primary'
+    secondary_channel_name = dfs['nucleoli_features']['secondary_measure_channel_name'].dropna().iloc[0] if 'secondary_measure_channel_name' in dfs['nucleoli_features'].columns and dfs['nucleoli_features']['secondary_measure_channel_name'].notna().any() else 'secondary'
+
     nucleoli_features_raw = ['nucleoli_area', 'nucleoli_eccentricity', 'nucleoli_aspect_ratio',
                 'nucleoli_circularity', 'nucleoli_cv', 'nucleoli_skew',
                 'nucleus_std',
@@ -405,7 +421,7 @@ if __name__ == '__main__':
     paired_conditions = combinations(conditions, 2)
     paired_list = list(paired_conditions)
     paired_list = [pair for pair in paired_list if 'WT' in pair]  # only compare to WT
-    order = ["SP0HR","SP1HR","SP2HR","SP4HR","SP8HR","SP24HR"]
+    order = ["NoDFMO","SP0HR","SP8HR","SP24HR"]
     # palette = ['#A6CEE3', '#1F78B4', '#F5CB5C']
     palette = sns.color_palette('tab10', n_colors=len(conditions))
 
@@ -421,7 +437,8 @@ if __name__ == '__main__':
     for title, features, raw_df, reps_df, filename in plotting_configs:
         title
         plot_stats(raw_df, reps_df, features, f'Calculated Parameters - {title}', filename,
-                   x='condition', hue=None, pairs=paired_list, order=order)
+                   x='condition', hue=None, pairs=paired_list, order=order,
+                   primary_channel_name=primary_channel_name, secondary_channel_name=secondary_channel_name)
     
     # --- Focused pairwise comparison: nuclear enrichment and partition coefficient ---
     logger.info('\nGenerating focused pairwise comparison plots...')
@@ -434,8 +451,9 @@ if __name__ == '__main__':
     
     # Define comparison pairs
     comparison_pairs = [
-        ('SP0HR', 'SP4HR'),
-        ('SP0HR', 'SP8HR')
+        ('SP0HR', 'SP8HR'),
+        ('NoDFMO', 'SP0HR'),
+        ('NoDFMO', 'SP8HR')
     ]
     
     # Store results from all comparisons
@@ -449,7 +467,9 @@ if __name__ == '__main__':
                 cond1,
                 cond2,
                 f'Nuclear Enrichment & Partition Coefficient:\n{cond1} vs {cond2}',
-                f'pairwise_{cond1}_vs_{cond2}.png'
+                f'pairwise_{cond1}_vs_{cond2}.png',
+                primary_channel_name=primary_channel_name,
+                secondary_channel_name=secondary_channel_name
             )
             all_comparison_results[(cond1, cond2)] = results
             logger.info(f"✓ Pairwise comparison plot saved: {cond1} vs {cond2}")
@@ -463,6 +483,8 @@ if __name__ == '__main__':
             dfs['nucleoli_features_normalized_reps'],
             enrichment_partition_features,
             comparison_pairs,
-            output_folder
+            output_folder,
+            primary_channel_name=primary_channel_name,
+            secondary_channel_name=secondary_channel_name
         )
         logger.info(f"✓ Bonferroni-corrected plots generated")

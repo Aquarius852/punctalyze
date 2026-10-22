@@ -60,13 +60,13 @@ SAT_FRAC_CUTOFF = 0.01  # for consistency with remove_saturated_labels
 # SECONDARY_MEASURE_CHANNEL:
 #   optional comparison channel measured inside the SAME masks
 
-SEGMENTATION_CHANNEL = 0
-PRIMARY_MEASURE_CHANNEL = 1
-SECONDARY_MEASURE_CHANNEL = 1
+SEGMENTATION_CHANNEL = 1
+PRIMARY_MEASURE_CHANNEL = 0
+SECONDARY_MEASURE_CHANNEL = 2
 
-SEGMENTATION_CHANNEL_NAME = 'fbl'
+SEGMENTATION_CHANNEL_NAME = 'npm1'
 PRIMARY_MEASURE_CHANNEL_NAME = 's9'
-SECONDARY_MEASURE_CHANNEL_NAME = 's9'
+SECONDARY_MEASURE_CHANNEL_NAME = 'pol1'
 
 SCALE_PX = (294.67 / 2720)  # size of one pixel in units specified by the next constant
 SHOW_SURVIVORS_ONLY = True  # proofs show nucleoli masks after filtering
@@ -439,8 +439,11 @@ def collect_nucleoli_features(image_dict):
             # nucleus-level stats from PRIMARY / SECONDARY measurement channels
             v1_nuc = primary_img[nuc_mask]
             v2_nuc = secondary_img[nuc_mask]
+            v_seg_nuc = segmentation_img[nuc_mask]
             mean1_nuc = float(np.mean(v1_nuc)) if v1_nuc.size else np.nan
             std1_nuc = float(np.std(v1_nuc)) if v1_nuc.size else np.nan
+            segmentation_intensity_sum = float(np.sum(v_seg_nuc)) if v_seg_nuc.size else np.nan
+            segmentation_intensity_per_area = float(np.sum(v_seg_nuc) / (nuc_mask.sum() + 1e-9)) if v_seg_nuc.size else np.nan
 
             df['image_name'] = name
             df['nucleus_number'] = lbl
@@ -450,6 +453,8 @@ def collect_nucleoli_features(image_dict):
             df['nucleus_skew'] = skewtest(v1_nuc).statistic if v1_nuc.size >= 8 else np.nan
             df['nucleus_coi1_intensity_mean'] = mean1_nuc
             df['nucleus_coi2_intensity_mean'] = float(np.mean(v2_nuc)) if v2_nuc.size else np.nan
+            df['nucleus_segmentation_intensity'] = segmentation_intensity_sum
+            df['nucleus_segmentation_intensity_per_area'] = segmentation_intensity_per_area
             df['nucleoplasm_coi1_intensity_mean'] = mean1_nucleoplasm
             df['nucleoplasm_coi2_intensity_mean'] = mean2_nucleoplasm
             df['nucleus_coords'] = [contour] * len(df)
